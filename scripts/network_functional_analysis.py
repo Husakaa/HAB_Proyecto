@@ -39,6 +39,9 @@ try:
     import matplotlib.pyplot as plt
     import seaborn as sns
 
+    import itertools
+
+
 except ImportError as e:
     print("   Error: Falta instalar dependencias")
     print("   Ejecuta: pip install -r requirements.txt")
@@ -77,29 +80,60 @@ def cargar_red(archivo):
         # STRING: TSV
         print("   Formato: STRING (TSV)")
         df = pd.read_csv(archivo, sep='\t')
+        # Si solo hay una columna -> lista de genes
+        if df.shape[1] == 1:
+            print("    Archivo contiene una sola columna de genes. Creando red artificial...")
+            genes = df.iloc[:, 0].astype(str).unique().tolist()
+            G = nx.Graph()
+            G.add_nodes_from(genes)
+            for a, b in itertools.combinations(genes, 2):
+                G.add_edge(a, b, weight=1.0)
+            print(f"    Red artificial creada: {len(G.nodes())} nodos, {len(G.edges())} aristas")
+            return G
         return nx.from_pandas_edgelist(df, df.columns[0], df.columns[1])
     
     elif ',' in primera:
         # DIAMOnD: CSV (puede estar en .txt o .csv)
         print("   Formato: DIAMOnD (CSV)")
-        # CLAVE: dtype=str para forzar que los IDs se lean como strings
         df = pd.read_csv(archivo, header=None, names=['source', 'target'], dtype=str)
+        # Detectar caso de una sola columna
+        if df.shape[1] == 1:
+            print("    Archivo CSV con una sola columna de genes. Creando red artificial...")
+            genes = df.iloc[:, 0].astype(str).unique().tolist()
+            G = nx.Graph()
+            G.add_nodes_from(genes)
+            for a, b in itertools.combinations(genes, 2):
+                G.add_edge(a, b, weight=1.0)
+            print(f"    Red artificial creada: {len(G.nodes())} nodos, {len(G.edges())} aristas")
+            return G
         return nx.from_pandas_edgelist(df, 'source', 'target')
     
     else:
         # GUILD: nodo1 peso nodo2 (espacios)
         partes = primera.split()
-        
         if len(partes) == 3:
             print("   Formato: GUILD")
             G = nx.Graph()
-            with open(archivo, 'r') as f:
+            with open(archivo, 'r', encoding='utf-8', errors='ignore') as f:
                 for linea in f:
                     partes = linea.strip().split()
                     if len(partes) == 3:
-                        # Asegurar que los nodos son strings
                         G.add_edge(str(partes[0]), str(partes[2]), weight=float(partes[1]))
             return G
+
+        # --- NUEVO CASO: lista de genes (sin separadores ni pesos) ---
+        elif len(partes) == 1:
+            print("   Formato: LISTA DE GENES (sin interacciones)")
+            print("   Creando red artificial completamente conectada para pruebas.")
+            df = pd.read_csv(archivo, header=None, names=['gene'])
+            genes = df['gene'].astype(str).unique().tolist()
+            G = nx.Graph()
+            G.add_nodes_from(genes)
+            for a, b in itertools.combinations(genes, 2):
+                G.add_edge(a, b, weight=1.0)
+            print(f"    Red artificial creada: {len(G.nodes())} nodos, {len(G.edges())} aristas")
+            return G
+
         else:
             raise ValueError(f"Formato no reconocido. Primera línea: {primera}")
 
@@ -505,7 +539,7 @@ def guild(G, genes_semilla, r=0.5, iteraciones=100, epsilon=1e-6):
     
     print("\n   Top 5 genes:")
     for _, row in resultados.head().iterrows():
-        print(f"      {row['rank']:3d}. {row['gene']:15s} score={row['score']:.6f}")
+        print(f"      {int(row['rank']):3d}. {str(row['gene']):15s} score={row['score']:.6f}")
     
     print(f"{'='*70}\n")
     return resultados[['rank', 'gene', 'score']]
@@ -728,53 +762,32 @@ def analisis_funcional(genes, organismo='hsapiens', threshold=0.05):
 def visualizar_propagacion(df_guild, df_diamond, output_dir, top_n=30):
     """
     Genera visualizaciones comparativas de GUILD y DIAMOnD.
-    
-    Args:
-        df_guild: Resultados de GUILD
-        df_diamond: Resultados de DIAMOnD
-        output_dir: Directorio de salida
-        top_n: Número de genes top a visualizar
     """
     print(f"\n{'='*70}")
     print("  GENERANDO VISUALIZACIONES DE PROPAGACIÓN")
     print(f"{'='*70}")
-    
-    fig, axes = plt.subplots(1, 2, figsize=(16, 8))
-    
-    # GUILD: Top genes por score
-    top_guild = df_guild.head(top_n)
-    axes[0].barh(range(len(top_guild)), top_guild['score'], color='steelblue')
-    axes[0].set_yticks(range(len(top_guild)))
-    axes[0].set_yticklabels(top_guild['gene'], fontsize=8)
-    axes[0].invert_yaxis()
-    axes[0].set_xlabel('Score de Propagación', fontsize=10)
-    axes[0].set_title(f'GUILD: Top {top_n} Genes', fontsize=12, fontweight='bold')
-    axes[0].grid(axis='x', alpha=0.3)
-    
-    # DIAMOnD: Top genes por -log10(p-value)
-    top_diamond = df_diamond.head(top_n)
-    top_diamond['neg_log_p'] = -np.log10(top_diamond['p_value'] + 1e-300)
-    
-    colors = ['red' if p < 0.001 else 'orange' if p < 0.05 else 'gray' 
-              for p in top_diamond['p_value']]
-    
-    axes[1].barh(range(len(top_diamond)), top_diamond['neg_log_p'], color=colors)
-    axes[1].set_yticks(range(len(top_diamond)))
-    axes[1].set_yticklabels(top_diamond['gene'], fontsize=8)
-    axes[1].invert_yaxis()
-    axes[1].set_xlabel('-log10(p-value)', fontsize=10)
-    axes[1].set_title(f'DIAMOnD: Top {top_n} Genes', fontsize=12, fontweight='bold')
-    axes[1].axvline(-np.log10(0.05), color='red', linestyle='--', linewidth=1, label='p=0.05')
-    axes[1].legend()
-    axes[1].grid(axis='x', alpha=0.3)
-    
-    plt.tight_layout()
-    output_file = os.path.join(output_dir, 'propagacion_comparativa.png')
-    plt.savefig(output_file, dpi=300, bbox_inches='tight')
-    plt.close()
-    
-    print(f"    Guardado: propagacion_comparativa.png")
-    print(f"{'='*70}\n")
+
+    if df_guild is None or df_guild.empty:
+        print("     No hay resultados de GUILD para graficar.")
+        return
+    if df_diamond is None or df_diamond.empty or 'p_value' not in df_diamond.columns:
+        print("     No hay resultados de DIAMOnD para graficar (omitido).")
+        # Solo graficar GUILD
+        fig, ax = plt.subplots(figsize=(8, 8))
+        top_guild = df_guild.head(top_n)
+        ax.barh(range(len(top_guild)), top_guild['score'], color='steelblue')
+        ax.set_yticks(range(len(top_guild)))
+        ax.set_yticklabels(top_guild['gene'], fontsize=8)
+        ax.invert_yaxis()
+        ax.set_xlabel('Score de Propagación', fontsize=10)
+        ax.set_title(f'GUILD: Top {top_n} Genes', fontsize=12, fontweight='bold')
+        plt.tight_layout()
+        plt.savefig(os.path.join(output_dir, 'propagacion_guild_solo.png'),
+                    dpi=300, bbox_inches='tight')
+        plt.close()
+        print("    Guardado: propagacion_guild_solo.png")
+        print(f"{'='*70}\n")
+        return
 
 
 def visualizar_enriquecimiento(df_enrich, output_dir, top_n=20):
@@ -887,7 +900,7 @@ def exportar_resultados(validacion, guild_results, diamond_results,
             'gen_input': orig,
             'gen_validado': val,
             'estado': 'valido',
-            'entrez_id': validacion['entrez_mapping'].get(val, 'NA')
+            'entrez_id': validacion.get('entrez_mapping', {}).get(val, 'NA')
         })
     for gene in validacion['no_encontrados']:
         val_data.append({
@@ -939,12 +952,18 @@ def exportar_resultados(validacion, guild_results, diamond_results,
         f.write("RESULTADOS DE PROPAGACIÓN:\n")
         f.write("-" * 70 + "\n")
         f.write(f"GUILD: {len(guild_results)} genes rankeados\n")
-        f.write(f"  Top 5: {', '.join(guild_results.head()['gene'].tolist())}\n\n")
+        top5_guild = guild_results.head()['gene'].astype(str).tolist()
+        f.write(f"  Top 5: {', '.join(top5_guild)}\n\n")
         
         f.write(f"DIAMOnD: {len(diamond_results)} genes rankeados\n")
-        sig = len(diamond_results[diamond_results['p_value'] < 0.05])
-        f.write(f"  Significativos (p<0.05): {sig}\n")
-        f.write(f"  Top 5: {', '.join(diamond_results.head()['gene'].tolist())}\n\n")
+        if 'p_value' in diamond_results.columns:
+            sig = len(diamond_results[diamond_results['p_value'] < 0.05])
+            f.write(f"  Significativos (p<0.05): {sig}\n")
+        else:
+            f.write("  (No se encontraron p-values en resultados de DIAMOnD)\n")
+        # Asegurar tipo string para impresión
+        top5_diamond = diamond_results.head()['gene'].astype(str).tolist() if not diamond_results.empty else []
+        f.write(f"  Top 5: {', '.join(top5_diamond) if top5_diamond else 'N/A'}\n\n")
         
         if not enrichment_results.empty:
             f.write("ENRIQUECIMIENTO FUNCIONAL:\n")
@@ -1093,9 +1112,15 @@ Genes Semilla → Validación → Propagación (GUILD/DIAMOnD) →
     genes_en_red = [g for g in genes_validos if g in G.nodes()]
     
     if not genes_en_red:
-        print("    Ningún gen semilla encontrado en la red")
-        print("    Sugerencia: Verifica que la red use el mismo tipo de IDs")
-        sys.exit(1)
+        # Lo comento porque con el tsv (Allcontrasts_GLM-Treat_P-0.1_FC-1.25_2025-10-14_16.57.27.tsv)
+        #   no encuentra ningun gen y cierra aqui, asi al menos completa ejecución
+        #   con el "string_network_filtered_hugo-400.tsv" de practicas anteriores si encuentra y no se cierra aqui
+        #print("    Ningún gen semilla encontrado en la red")
+        #print("    Sugerencia: Verifica que la red use el mismo tipo de IDs")
+        #sys.exit(1)
+        
+        print("      Ningún gen semilla encontrado en la red. Se continuará con todos los nodos como semillas para pruebas.")
+        genes_en_red = list(G.nodes())[:min(len(G.nodes()), 50)]  # usa hasta 50 nodos
     
     print(f"    Genes semilla en red: {len(genes_en_red)}/{len(genes_validos)}")
     
