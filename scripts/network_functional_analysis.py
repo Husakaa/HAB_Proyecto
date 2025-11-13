@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Análisis Integrado: Propagación en Redes + Enriquecimiento Funcional
 ====================================================================
@@ -390,22 +389,22 @@ def validar_y_convertir_genes(genes, organismo='human'):
     # Procesar resultados
     genes_validos = []
     mapping = {}
+    entrez_mapping = {}  
     no_encontrados = []
     advertencias = []
-    genes_a_reintentar = []  # Para genes no encontrados que intentaremos con MT-
+    genes_a_reintentar = []
     
     for gene_input, result in zip(genes, results['out']):
         if 'notfound' in result and result['notfound']:
-            # Gen no encontrado - guardar para reintentar con MT-
             genes_a_reintentar.append(gene_input)
             
         elif 'symbol' in result:
-            # Gen encontrado - usar símbolo oficial
             simbolo = result['symbol']
             genes_validos.append(simbolo)
             mapping[gene_input] = simbolo
+            if 'entrezgene' in result:
+                entrez_mapping[simbolo] = str(result['entrezgene'])
         else:
-            # Resultado ambiguo o incompleto
             genes_a_reintentar.append(gene_input)
     
     # Reintentar genes no encontrados con prefijo MT- (genes mitocondriales)
@@ -426,10 +425,11 @@ def validar_y_convertir_genes(genes, organismo='human'):
             
             for gene_original, gene_mt, result_mt in zip(genes_a_reintentar, variantes_mt, results_mt['out']):
                 if 'notfound' not in result_mt and 'symbol' in result_mt:
-                    # Encontrado con prefijo MT-
                     simbolo = result_mt['symbol']
                     genes_validos.append(simbolo)
                     mapping[gene_original] = simbolo
+                    if 'entrezgene' in result_mt:
+                        entrez_mapping[simbolo] = str(result_mt['entrezgene'])
                 else:
                     # Definitivamente no encontrado
                     no_encontrados.append(gene_original)
@@ -456,6 +456,7 @@ def validar_y_convertir_genes(genes, organismo='human'):
     return {
         'validos': genes_validos,
         'mapping': mapping,
+        'entrez_mapping': entrez_mapping,  
         'no_encontrados': no_encontrados,
         'advertencias': advertencias
     }
