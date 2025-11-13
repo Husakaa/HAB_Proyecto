@@ -14,7 +14,7 @@ MÉTODOS:
 - DIAMOnD: Disease Module Detection (expansión estadística)
 - g:Profiler: Enriquecimiento funcional (GO, KEGG, Reactome)
 
-AUTOR: Hugo Salas Calderón
+AUTORES: Hugo Salas Calderón, Aissa Omar El Hammouti Chachoui y Yussef Barakat Nieto
 """
 
 # Importar dependencias
