@@ -1,0 +1,23 @@
+{
+  "timestamp": "2025-11-14T21:14:33.016217",
+  "network_file": "data/string_network_filtered_hugo-400.tsv",
+  "algorithm": "both",
+  "top_genes_for_enrichment": 100,
+  "enrichment_threshold": 0.05,
+  "organism": "hsapiens",
+  "n_seed_genes": 10,
+  "seed_genes": [
+    "TP53",
+    "BRCA1",
+    "EGFR",
+    "MYC",
+    "CDK2",
+    "PTEN",
+    "AKT1",
+    "MTOR",
+    "VEGFA",
+    "MAPK1"
+  ],
+  "network_nodes": 18889,
+  "network_edges": 894137
+}

@@ -1,0 +1,35 @@
+======================================================================
+RESUMEN DE LA EJECUCIÓN - ANÁLISIS INTEGRADO
+======================================================================
+
+Fecha: 2025-11-14T21:14:33.016217
+Genes semilla: 10
+Red: data/string_network_filtered_hugo-400.tsv
+
+RESULTADOS DE PROPAGACIÓN:
+----------------------------------------------------------------------
+GUILD: 18889 genes rankeados
+  Top 5: TP53, AKT1, MYC, EGFR, PTEN
+
+DIAMOnD: 200 genes rankeados
+  Significativos (p<0.05): 200
+  Top 5: CCNL2, TSC2, MCL1, TCHP, CDKN1B
+
+ENRIQUECIMIENTO FUNCIONAL:
+----------------------------------------------------------------------
+Total términos: 4770
+  GO:BP: 3700 términos
+  KEGG: 186 términos
+  REAC: 884 términos
+
+Top 10 procesos biológicos:
+  • Pathways in cancer (p=1.38e-53)
+  • apoptotic process (p=1.73e-49)
+  • programmed cell death (p=7.36e-49)
+  • cell death (p=7.36e-49)
+  • intracellular signal transduction (p=8.05e-48)
+  • regulation of apoptotic process (p=4.16e-46)
+  • Prostate cancer (p=8.14e-46)
+  • regulation of programmed cell death (p=2.34e-45)
+  • regulation of cell population proliferation (p=6.76e-45)
+  • Kaposi sarcoma-associated herpesvirus infection (p=4.50e-44)

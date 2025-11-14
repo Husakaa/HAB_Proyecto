@@ -1,0 +1,11 @@
+gen_input,gen_validado,estado,entrez_id
+TP53,TP53,valido,7157
+BRCA1,BRCA1,valido,672
+EGFR,EGFR,valido,1956
+MYC,MYC,valido,4609
+CDK2,CDK2,valido,1017
+PTEN,PTEN,valido,5728
+AKT1,AKT1,valido,207
+MTOR,MTOR,valido,2475
+VEGFA,VEGFA,valido,7422
+MAPK1,MAPK1,valido,5594
